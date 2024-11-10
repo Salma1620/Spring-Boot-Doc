@@ -9,6 +9,17 @@
   - [Layers of a Spring Boot Application](#Layers-of-a-Spring-Boot-Application)
   - [Example of Spring Boot Architecture in Action](#Example-of-Spring-Boot-Architecture-in-Action)
   - [Spring Boot project architecture](#Spring-Boot-project-architecture)
+- [Introduction to RESTful Web Services](#Introduction-to-RESTful-Web-Services)
+  - [Important Annotations RESTful Web services](#Important-Annotations-RESTful-Web-services)
+    - [Parameter Annotations](#Parameter-Annotations)
+      - [@PathVariable](#@PathVariable)
+      - [@RequestParam](#@RequestParam)
+      - [@RequestBody](#@RequestBody)
+      - [@RequestHeader](#@RequestHeader)
+    - [Response Annotations](#Response-Annotations)
+      - [@ResponseBody](#@ResponseBody)
+      - [@ResponseStatus](#@ResponseStatus)
+      - 
 
 # Introduction
 > - Spring Boot is a powerful framework designed to simplify the development of Spring applications by providing a streamlined setup and reducing configuration complexity.<br/>
@@ -181,5 +192,198 @@ The spring boot consists of the following four layers:<br/>
 > - It uses the concepts and verbs already present in HTTP to develop web services.<br/>
 
 ## Important Methods of HTTP
+
+### Important Annotations RESTful Web services
+
+
+### Parameter Annotations
+
+#### @PathVariable
+> - Binds a method parameter to a URI template variable.<br/>
+> - Used to capture dynamic parts of the URI.<br/>
+```java
+@GetMapping("/users/{id}")
+public User getUserById(@PathVariable Long id) {
+    return userService.getUserById(id);
+}
+```
+> - **Explanation:** In this example, {id} in the URL will be extracted and bound to the method parameter id. So, if the request URL is /users/123, the id parameter will receive the value 123.<br/>
+
+> If the path variable name in the URI is different from the method parameter name, you can specify the exact name to use with `@PathVariable("paramName")`.<br/>
+```java
+@GetMapping("/users/{userId}")
+public String getUserById(@PathVariable("userId") Long id) {
+    return "User ID: " + id;
+}
+```
+
+> - To make a path variable optional, you set `required = false`.<br/>
+> - In this case, the variable will be optional, and you should provide a default value in the method if the variable is not present in the URL.<br/>
+```java
+@GetMapping(value = {"/users/{id}", "/users"})
+public String getUserById(@PathVariable(value = "id", required = false) Long id) {
+    if (id == null) {
+        return "All users";
+    }
+    return "User ID: " + id;
+}
+```
+#### @RequestParam
+> - Extracts query parameters from the URL.<br/>
+> - Useful for optional or filtering parameters.<br/>
+```java
+@GetMapping("/users")
+public List<User> getUsersByStatus(@RequestParam String status) {
+    return userService.getUsersByStatus(status);
+}
+```
+> **Explanation:** In this example, if the request URL is /users?status=active, the status parameter will be bound to "active".<br/>
+
+> When the query parameter name differs from the method parameter, specify the query parameter using value.<br/>
+```java
+@GetMapping("/search")
+public String search(@RequestParam(value = "q") String query) {
+    return "Search query: " + query;
+}
+
+//Request URL: /search?q=spring
+//Result: "Search query: spring"
+//Here, the query parameter q in the URL binds to the query method parameter
+```
+
+> Optional Parameter with required = false<br/>
+> - Making a parameter optional allows for flexible endpoints.<<br/>
+> - If the query parameter is absent, the method will not fail.<br/>
+```java
+@GetMapping("/search")
+public String search(@RequestParam(value = "query", required = false) String query) {
+    return query != null ? "Search query: " + query : "No query provided";
+}
+//Request URL: /search?query=spring
+//Result: "Search query: spring"
+//Request URL: /search
+//Result: "No query provided"
+```
+
+> Specify a defaultValue to provide a fallback when the query parameter is missing. This is helpful to avoid null checks.<br/>
+```java
+@GetMapping("/search")
+public String search(@RequestParam(value = "query", defaultValue = "default") String query) {
+    return "Search query: " + query;
+}
+```
+
+> - To accept multiple values for a query parameter, use List or Set as the parameter type.<br/>
+> - Spring will automatically convert query parameters with the same name into a list or set.<br/>
+```java
+@GetMapping("/filter")
+public String filter(@RequestParam List<String> categories) {
+    return "Categories: " + String.join(", ", categories);
+}
+//Request URL: /filter?categories=sports&categories=music&categories=tech
+//Result: "Categories: sports, music, tech"
+```
+
+#### @RequestBody
+> - Maps the HTTP request body to a Java object, typically used in POST and PUT requests.<br/>
+> - Automatically deserializes JSON into a Java object.<br/>
+```java
+@PostMapping("/users")
+public User createUser(@RequestBody User user) {
+    return userService.saveUser(user);
+}
+```
+> **Explanation:** When a JSON request body is sent (e.g., { "name": "John", "email": "john@example.com" }), Spring automatically converts it into a User object and binds it to the user parameter.<br/>
+
+> When Required is false<br/>
+```java
+public String createUser(@RequestBody(required = false) User user) {
+    if (user == null) {
+        return "No user data provided";
+    }
+    return "User created: " + user.getName();
+}
+```
+> **Required Fields and Validation:** Combine @RequestBody with validation annotations (e.g., @Valid) to ensure that the input data meets certain criteria.<br/>
+```java
+@PostMapping("/create")
+public ResponseEntity<String> createUser(@Valid @RequestBody User user) {
+    return ResponseEntity.ok("User created: " + user.getName());
+}
+```
+
+#### @RequestHeader
+> - Binds a method parameter to a request header.<br/>
+> - Useful for retrieving custom headers, like authorization tokens.<br/>
+```java
+@GetMapping("/users")
+public User getUserByToken(@RequestHeader("Authorization") String token) {
+    return userService.getUserByToken(token);
+}
+```
+
+> You can use the `required attribute` to specify whether the header is mandatory and `defaultValue` to provide a default value if the header is missing.<br/>
+```java
+@GetMapping("/user")
+    public String getUser(@RequestHeader(name = "Authorization", required = false, defaultValue = "No Authorization Token") String authorizationHeader) {
+        return "Authorization header value: " + authorizationHeader;
+    }
+```
+
+> You can also use @RequestHeader to bind `multiple headers` in a method. This is useful when you need to extract several headers at once.<br/>
+```java
+@GetMapping("/user")
+    public String getUser(@RequestHeader("Authorization") String authorizationHeader, 
+                          @RequestHeader("User-Agent") String userAgent) {
+        return "Authorization header: " + authorizationHeader + ", User-Agent: " + userAgent;
+    }
+```
+
+
+### Response Annotations
+
+#### @ResponseBody
+> - Used to send the response directly as an object (often serialized as JSON or XML).<br/>
+> -  @RestController is a special convenience annotation that combines @Controller and @ResponseBody, so you don't need to explicitly annotate each method with @ResponseBody.<br/>
+> - 
+```java
+@ResponseBody
+@GetMapping("/users/{id}")
+public User getUser(@PathVariable Long id) {
+    return userService.getUserById(id);
+}
+```
+
+#### @ResponseStatus
+When you annotate a method with @ResponseStatus, you specify the HTTP status code to be returned when that method is invoked. This is helpful when you want to indicate that a specific operation has completed successfully or failed.
+```java
+ @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)  // 201 status code for successful resource creation
+    public User createUser(@RequestBody User user) {
+        // Logic to save user
+        return user;  // The response will have status 201 Created
+    }
+```
+
+One of the common use cases of @ResponseStatus is in exception handling. You can create custom exceptions and annotate them with @ResponseStatus to return a specific HTTP status code when that exception is thrown.
+```java
+@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "User not found")
+public class UserNotFoundException extends RuntimeException {
+    public UserNotFoundException(String message) {
+        super(message);
+    }
+}
+```
+
+#### ResponseEntity
+
+> - ResponseEntity is a powerful class used for handling HTTP responses in a flexible and detailed way. It allows you to control the full HTTP response, including the status code, headers, and body, making it highly useful for RESTful web services.
+
+
+
+
+
+
+
 ### GET
 
