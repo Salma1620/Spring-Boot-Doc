@@ -19,7 +19,13 @@
     - [Response Annotations](#Response-Annotations)
       - [@ResponseBody](#@ResponseBody)
       - [@ResponseStatus](#@ResponseStatus)
-      - 
+      - [ResponseEntity class](#ResponseEntity-class)
+  - [Important Methods of HTTP](Important-Methods-of-HTTP)
+    - [GET](#GET)
+    - [PUT](#PUT)
+    - [PATCH](#Patch)
+    - [DELETE](#DELETE)
+- [Spring Data](#Spring-Data)
 
 # Introduction
 > - Spring Boot is a powerful framework designed to simplify the development of Spring applications by providing a streamlined setup and reducing configuration complexity.<br/>
@@ -191,10 +197,8 @@ The spring boot consists of the following four layers:<br/>
 > - Consequently, REST was an architectural approach designed to make the optimum use of HTTP protocol.<br/>
 > - It uses the concepts and verbs already present in HTTP to develop web services.<br/>
 
-## Important Methods of HTTP
 
-### Important Annotations RESTful Web services
-
+## Important Annotations RESTful Web services
 
 ### Parameter Annotations
 
@@ -383,6 +387,16 @@ public class UserNotFoundException extends RuntimeException {
     }
 }
 ```
+**Commun HTTP status code** <br/>
+
+200 OK: When a resource is successfully fetched or updated.<br/>
+201 Created: When a resource is successfully created.<br/>
+204 No Content: When an operation succeeds but does not return data.<br/>
+400 Bad Request: When the client sends invalid data.<br/>
+401 Unauthorized: When the client is not authenticated.<br/>
+403 Forbidden: When the client does not have permission.<br/>
+404 Not Found: When the resource is not found.<br/>
+500 Internal Server Error: For unhandled server errors.<br/>
 
 #### ResponseEntity
 ResponseEntity is a powerful class used for handling HTTP responses in a flexible and detailed way. It allows you to control the full HTTP response, including the status code, headers, and body, making it highly useful for RESTful web services. <br/>
@@ -399,9 +413,11 @@ public class UserController {
 
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            // Returns an HTTP 404 Not Found response with an empty body.
         }
 
-        return ResponseEntity.ok(user); // HTTP 200 OK with user as the body
+        return ResponseEntity.ok(user); 
+        // Returns an HTTP 200 OK response with the user object in the body.
     }
 
     @PostMapping("/users")
@@ -413,7 +429,8 @@ public class UserController {
             .buildAndExpand(createdUser.getId())
             .toUri();
 
-        return ResponseEntity.created(location).body(createdUser); // HTTP 201 Created
+        return ResponseEntity.created(location).body(createdUser);
+        // Returns an HTTP 201 Created response with a Location header pointing to the new resource and the createdUser object in the body.
     }
 }
 ```
@@ -421,7 +438,268 @@ public class UserController {
 
 
 
-
+## Important Methods of HTTP
 
 ### GET
+Retrieve data from the server. Does not modify the resource.
+**Usage:**
+Fetch a list of resources: /users
+Fetch a specific resource: /users/{id}
+
+```java
+@GetMapping("/users/{id}")
+public User getUserById(@PathVariable Long id) {
+    return userService.findById(id);
+}
+```
+
+### POST
+Create a new resource on the server. Not safe: It modifies server state. Often returns 201 Created.
+**Usage:**
+Create a new resource: /users
+
+```java
+@PostMapping("/users")
+public ResponseEntity<User> createUser(@RequestBody User user) {
+    User createdUser = userService.save(user);
+    return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+}
+```
+
+#### PUT
+Update or create a resource by replacing it entirely. Not safe: It modifies server state. Often returns 200 OK or 204 No Content.
+**Usage:**
+Update a specific resource: /users/{id}
+
+```java
+@PutMapping("/users/{id}")
+public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
+    userService.update(id, user);
+    return ResponseEntity.ok(user);
+}
+```
+
+
+#### PATCH
+Partially update a resource. Not safe: It modifies server state. Often returns 200 OK or 204 No Content.
+**Usage:**
+Update a specific field of a resource: /users/{id}
+
+```java
+@PatchMapping("/users/{id}")
+public ResponseEntity<User> partialUpdateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+    User updatedUser = userService.partialUpdate(id, updates);
+    return ResponseEntity.ok(updatedUser);
+}
+```
+
+#### DELETE
+Delete a resource from the server. Not safe: It modifies server state. Often returns 204 No Content.
+**Usage:**
+Delete a specific resource: /users/{id}
+
+```java
+@DeleteMapping("/users/{id}")
+public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    userService.delete(id);
+    return ResponseEntity.noContent().build();
+}
+```
+
+# Spring Data
+Spring Data is a part of the larger Spring framework, focused on simplifying data access layers in applications. It provides powerful abstractions and implementations for working with various data sources, including relational databases, NoSQL databases, and other storage systems.<br/>
+
+## Key Features of Spring Data
+
+### Repository Abstractions
+Provides CrudRepository, JpaRepository, and other repository interfaces to simplify CRUD (Create, Read, Update, Delete) operations.
+The JpaRepository implements indirectly the CrudRepository.
+```java
+public interface UserRepository extends JpaRepository<T, ID type> {...}
+// where T is the type of the object, and the ID type is the type of the id of the object.
+```
+
+
+### Custom Query Methods
+Automatically generates queries based on method names (e.g., findByFirstName).
+Supports both JPQL and native SQL queries.
+
+**Derived Queries:** <br/>
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+    // Custom query methods
+    List<User> findByLastName(String lastName);
+    // the implementation is :
+        //return entityManager.createQuery("select u from User u where u.lastName = :lastName", User.class)
+          .setParameter("lastName", lastName) .getSingleResult();
+}
+```
+
+**Custom JPQL Queries:** <br/>
+```java
+@Query("SELECT u FROM User u WHERE u.lastName = :lastName")
+List<User> findUsersByLastName(@Param("lastName") String lastName);
+```
+
+**Native SQL Queries:** <br/>
+```java
+@Query(value = "SELECT * FROM user WHERE last_name = ?1", nativeQuery = true)
+List<User> findUsersByLastNameNative(String lastName);
+```
+
+## relationships between database tables
+
+### One-to-One Relationship
+Each record in Table A relates to exactly one record in Table B, and vice versa.
+
+**Example:** <br/>
+User table has a one-to-one relationship with the Profile table.
+```java
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToOne
+    @JoinColumn(name = "profile_id", referencedColumnName = "id")
+    private Profile profile;
+
+    // @OneToOne: Defines the one-to-one relationship.
+    // @JoinColumn: Specifies the foreign key column (profile_id in User). By default it's profile_id, we could not use JoinColumn annotation here
+    // referencedColumnName specifies the column in the other table being referenced (id in Profile)
+}
+```
+
+**Bidirectional Relationship** <br/>
+If you need a reference to User in the Profile entity:
+```java
+@Entity
+public class Profile {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String bio;
+
+    @OneToOne(mappedBy = "profile")
+    private User user;
+
+    // mappedBy: Indicates the profile field in User owns the relationship.
+}
+```
+
+### One-to-Many Relationship
+A record in Table A can relate to multiple records in Table B. The reverse is a Many-to-One relationship. <br/>
+
+Example:
+A Department has many Employees.
+```java
+@Entity
+public class Department {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "department")
+    private List<Employee> employees = new ArrayList<>();
+
+    // 
+}
+```
+```java
+@Entity
+public class Employee {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "department_id", referencedColumnName = "id")
+    private Department department;
+
+    // ManyToOne: Used on the child entity to define the owning side.
+}
+```
+
+### Many-to-Many Relationship
+A record in Table A can relate to multiple records in Table B, and vice versa.
+
+**Example:** <br/>
+A Student can enroll in many Courses, and a Course can have many Students.
+```java
+@Entity
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToMany
+    @JoinTable(
+        name = "student_course",
+        joinColumns = @JoinColumn(name = "student_id"),
+        inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses = new ArrayList<>();
+
+    // @ManyToMany: Declares a many-to-many relationship.
+    // @JoinTable: Specifies the join table name student_course that maps the relationship.
+    // joinColumns: Defines the join column name for the owning entity (student_id).
+    // inverseJoinColumns: Defines the join column name for the inverse entity (course_id).
+}
+```
+
+```java
+@Entity
+public class Course {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String title;
+
+    @ManyToMany(mappedBy = "courses")
+    private List<Student> students = new ArrayList<>();
+
+    // Getters and setters
+}
+```
+
+### Cascade Types
+`ALL`: Propagates all operations (persist, remove, merge, etc.).<br/>
+`PERSIST`: Saves child entities when the parent is saved.<br/>
+`REMOVE`: Deletes child entities when the parent is deleted.<br/>
+`MERGE`: Merges changes of the child entities when the parent is merged.<br/>
+`REFRESH`: Refreshes child entities when the parent is refreshed.<br/>
+`DETACH`: Detaches child entities when the parent is detached.<br/>
+**Declaration:**
+```java
+@OneToMany(cascade = CascadeType.PERSIST)
+```
+
+###  Fetch Types
+Fetch types determine how related entities are loaded:<br/>
+
+`EAGER`: Related entities are fetched immediately with the parent. By default for `@OneToOne` and `@ManyToOne`.<br/>
+`LAZY`: Related entities are fetched on demand. By default for `@OneToMany` et `@ManyToMany`.<br/>
+**Declaration:**
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+```
+
+
+
+
+
+
+
+
 
