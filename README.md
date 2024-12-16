@@ -509,11 +509,126 @@ public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
 # Spring Data
 Spring Data is a part of the larger Spring framework, focused on simplifying data access layers in applications. It provides powerful abstractions and implementations for working with various data sources, including relational databases, NoSQL databases, and other storage systems.<br/>
 
+
+## Hibernate and JPA: Key Points
+
+### What is JPA?
+- JPA (Java Persistence API) is a standard specification for managing relational data in Java applications.<br/>
+- It defines annotations like @Entity, @Table, relations between tables, and standardizes how to map Java objects to database tables.<br/>
+```java
+@Entity
+public class Person {
+    @Id
+    private Long id;
+    private String name;
+}
+```
+```java
+// to specify another name of the Entity in @Entity 
+@Entity(name = "employees")
+public class Employee {
+    @Id
+    private Long id;
+    private String name;
+}
+```
+```java
+@Entity
+// to specify the name of the tale in database, the schema, and email should be unique, otherwise, the database will declare an error 
+@Table(name = "students", schema = "school", uniqueConstraints = @UniqueConstraint(columnNames = {"email"}))
+public class Student {
+    @Id
+    private Long id;
+    private String firstName;
+    private String lastName;
+    private String email;
+}
+```
+
+- the @Column annotation is used to specify the details of a column in a relational database that corresponds to a field in an entity class.<br/>
+```java
+@Column(name = "column_name", nullable = false, unique = true, length = 100)
+private String field;
+```
+
+### What is Hibernate?
+- Hibernate is an ORM framework that implements the JPA specification.<br/>
+- It provides additional features like caching, advanced queries, and support for database-specific functions.
+
+### Relationship Between JPA and Hibernate:
+- Hibernate is a JPA implementation. It uses JPA annotations and APIs but also offers proprietary extensions.<br/>
+- If you use JPA without explicitly choosing an implementation, Hibernate is often the default.<br/>
+
+### Spring Data JPA:
+- Spring Data JPA is a library that simplifies working with JPA by providing tools like repositories and query derivation.<br/>
+- When you add the spring-boot-starter-data-jpa dependency, Hibernate is automatically included as the default JPA provider.<br/>
+- **Switching JPA Implementations:** Hibernate can be replaced with other JPA implementations (e.g., EclipseLink, OpenJPA) by excluding Hibernate and adding the desired provider.<br/>
+
+### impedance mismatch 
+- describes the difficulties when translating between object-oriented and relational models, and frameworks like Hibernate (JPA) aim to minimize these issues by automating much of the mapping between objects and tables. <br/>
+
+### Summary: 
+JPA is a standard, and Hibernate is one of its most popular implementations. In Spring Boot, adding Spring Data JPA automatically includes Hibernate as the JPA provider.<br/>
+
+## Spring boot validation
+- validation refers to the process of ensuring that the input data provided by users meets certain rules or constraints before being persisted, processed, or returned in an application.<br/>
+- Spring Boot integrates with the Java Bean Validation API to provide a declarative and flexible approach to validating data.<br/>
+- Spring Boot automatically enables the validation mechanism when you include the `spring-boot-starter-validation` dependency.
+
+```java
+<!-- Maven -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+### Common Validation Annotations
+
+**@NotNull**: Ensures the value is not null.wbr/>
+```java
+@NotNull(message = "Name must not be null")
+private String name;
+```
+
+**@Size(min = 5, max = 20)**: Ensures the string length is between 5 and 20.<br/>
+```java
+@Size(min = 5, max = 20)
+private String username;
+```
+
+**@Email**: Ensures the string is a valid email address.<br/>
+```java
+@Email(message = "Email should be valid")
+private String email;
+```
+
+**@Min and @Max**: Ensures a number is within a specific range.<br/>
+```java
+@Min(18)
+@Max(100)
+private int age;
+```
+
+**@NotBlank**: Ensures the string is not empty or null.<br/>
+```java
+@NotBlank(message = "Password cannot be blank")
+private String password;
+```
+
+```java
+@PostMapping("/create")
+  public String createUser(@Valid @RequestBody User user) {
+    userService.save(user);
+    return "User created successfully!";
+}
+```
+
 ## Key Features of Spring Data
 
 ### Repository Abstractions
-Provides CrudRepository, JpaRepository, and other repository interfaces to simplify CRUD (Create, Read, Update, Delete) operations.
-The JpaRepository implements indirectly the CrudRepository.
+- Jpa provides CrudRepository, JpaRepository, and other repository interfaces to simplify CRUD (Create, Read, Update, Delete) operations. <br/>
+- The JpaRepository implements indirectly the CrudRepository.<br/>
 ```java
 public interface UserRepository extends JpaRepository<T, ID type> {...}
 // where T is the type of the object, and the ID type is the type of the id of the object.
@@ -521,10 +636,9 @@ public interface UserRepository extends JpaRepository<T, ID type> {...}
 
 
 ### Custom Query Methods
-Automatically generates queries based on method names (e.g., findByFirstName).
-Supports both JPQL and native SQL queries.
 
-**Derived Queries:** <br/>
+#### Derived Queries:
+- Automatically generates queries based on method names (e.g., findByFirstName).<br/>
 ```java
 public interface UserRepository extends JpaRepository<User, Long> {
     // Custom query methods
@@ -535,17 +649,34 @@ public interface UserRepository extends JpaRepository<User, Long> {
 }
 ```
 
-**Custom JPQL Queries:** <br/>
+#### Custom JPQL Queries:
+- Supports JPQL queries.<br/>
+- JPQL (Java Persistence Query Language): Standardized, portable, and works across all JPA implementations.<br/>
+
+**With param** <br/>
 ```java
 @Query("SELECT u FROM User u WHERE u.lastName = :lastName")
 List<User> findUsersByLastName(@Param("lastName") String lastName);
 ```
+**With JOIN:** <br/>
+```java
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    @Query("SELECT e FROM Employee e JOIN e.department d WHERE d.name = :departmentName")
+    List<Employee> findEmployeesByDepartmentName(@Param("departmentName") String departmentName);
+}
+```
 
 **Native SQL Queries:** <br/>
+- Supports also native SQL queries.<br/>
 ```java
 @Query(value = "SELECT * FROM user WHERE last_name = ?1", nativeQuery = true)
 List<User> findUsersByLastNameNative(String lastName);
 ```
+
+#### Using JPQL or SQL?
+**Using JPQL:** <br/>
+- When you need database independence and portability for your application. <br>
+- if we change the name of the table, we don't need to change the names in the queries. <br/>
 
 ## relationships between database tables
 
