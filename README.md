@@ -238,7 +238,7 @@ public String getUserById(@PathVariable(value = "id", required = false) Long id)
 ```
 #### @RequestParam
 > - Extracts query parameters from the URL.<br/>
-> - Useful for optional or filtering parameters.<br/>
+> - Useful for optional or filtering parameters. (generaly with GET) <br/>
 
 ```java
 @GetMapping("/users")
@@ -623,6 +623,47 @@ private String password;
     return "User created successfully!";
 }
 ```
+
+### DataSource interface
+**Obtaining a database connection:** A DataSource provides a way to obtain database connections transparently. In other words, you can use it to get a database connection without worrying about the underlying implementation details. <br/>
+
+**Connection pool management:** Instead of creating a new connection each time, Spring typically uses a connection pool. A connection pool manages a set of pre-existing, reusable connections, allowing you to reduce the time and resources required for each database connection.<br/>
+
+**Configuration:** You can configure a DataSource with information such as the database URL, username, and password.<br/>
+
+#### Via Spring Boot (auto-configuration)
+If you're using Spring Boot, the DataSource configuration is often automatic and based on properties in application.properties or application.yml. Spring Boot automatically configures a DataSource based on the database you are using.<br/>
+
+```java
+spring.datasource.url=jdbc:mysql://localhost:3306/mydatabase
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+
+#### spring.jpa.hibernate.ddl-auto
+This property is used to configure the schema management behavior for the database. <br/>
+It can have several values, and specifically, to update the database on each startup, you can set the property as follows:<br/>
+
+**Explanation of the different ddl-auto values:** <br/>
+- **none:** No changes are made to the database schema.<br/>
+- **update:** Hibernate will update the database schema based on the entities defined in the application. If changes have been made to the data model, Hibernate will update the database accordingly (e.g., adding new tables, modifying columns).<br/>
+- **create:** Hibernate will create the database schema every time the application starts, which drops and recreates the tables.<br/>
+- **create-drop:** Similar to create, but the tables are dropped when the application stops.<br/>
+- **validate:** Hibernate checks if the schema matches the entities but does not modify the database. If there are discrepancies, an exception is thrown.<br/>
+```java
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true  # Enables SQL logging to see the generated queries
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL5InnoDBDialect
+spring.jpa.properties.hibernate.format_sql=true  # Formats SQL queries to be more readable
+```
+### Transaction 
+A transaction is a set of operations that are executed atomically. This means that either all operations succeed, or none of them take effect.<br/>
+The primary goal of a transaction is to ensure data consistency, guaranteeing that a series of actions are performed correctly.<br/>
+In case of failure, no undesirable changes are persisted.<br/>
+
+Spring provides us with the ability to use `@Transactional`.<br/>
+This annotation is part of the `Spring Transaction module` and is an easy way to manage transactions declaratively in a Spring application.<br/>
 
 ## Key Features of Spring Data
 
