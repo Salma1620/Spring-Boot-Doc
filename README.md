@@ -114,6 +114,10 @@ every is implemented like this:
 
 ### Spring Boot Auto-configuration
 > - Auto-configuration in Spring Boot is a feature that automatically configures the Spring application context based on the dependencies and settings in your project.<br/>
+> - If you add spring-boot-starter-web to your project, Spring Boot automatically configures an embedded web server (such as Tomcat).<br/>
+> - If you add spring-boot-starter-data-jpa, Spring Boot automatically configures a data source and an EntityManager to interact with the database.<br/>
+> - If a database dependency like H2 or MySQL is present, Spring Boot will automatically configure a DataSource for you.<br/>
+> - You can customize these configurations by adding properties in the application.properties or application.yml file.<br/>
 
 #### SpringBootApplication annotation
 > It provides a main entry point with the SpringApplication.run(...) method, which launches the application.<br/>
